@@ -1,0 +1,1 @@
+# This is the first spring boot application I made to understand how java spring boot works
