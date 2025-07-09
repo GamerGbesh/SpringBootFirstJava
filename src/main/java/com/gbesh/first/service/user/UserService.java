@@ -13,8 +13,6 @@ import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @RequiredArgsConstructor
 @Service
 public class UserService implements IUserService{
@@ -23,13 +21,16 @@ public class UserService implements IUserService{
     private final ModelMapper modelMapper;
 
     @Override
-    public UserDto getUser(String username, String password) {
+    public UserDto authenticateUser(String username, String password) {
         if(StringUtils.isBlank(username) || StringUtils.isBlank(password)){
             throw new ResourceNotFoundException("Username or password is empty");
         }
 
-        Users user = Optional.ofNullable(userRepository.findByUsername(username))
-                .orElseThrow(() -> new UserNotFoundException("User does not exists"));
+        Users user = userRepository.findByUsername(username);
+
+        if (user == null){
+            throw new UserNotFoundException("User does not exists");
+        }
 
         if (passwordEncoder.matches(password, user.getPassword())){
             return modelMapper.map(user, UserDto.class);
@@ -40,11 +41,11 @@ public class UserService implements IUserService{
 
     @Override
     public UserDto saveUser(String username, String email, String password) {
-        boolean usernameTaken = userRepository.findByUsername(username) != null;
+        boolean usernameTaken = userRepository.existsByUsername(username);
         if (usernameTaken){
             throw new AlreadyExistsException("Username has already been taken!");
         }
-        boolean emailTaken = userRepository.findByEmail(email) != null;
+        boolean emailTaken = userRepository.existsByEmail(email);
         if (emailTaken){
             throw new AlreadyExistsException("Email has already been taken!");
         }

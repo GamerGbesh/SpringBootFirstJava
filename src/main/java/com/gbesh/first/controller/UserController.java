@@ -10,7 +10,6 @@ import com.gbesh.first.request.UserRequest;
 import com.gbesh.first.response.ApiResponse;
 import com.gbesh.first.service.user.IUserService;
 import lombok.AllArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,12 +19,12 @@ import static org.springframework.http.HttpStatus.*;
 @RequestMapping("/users")
 @AllArgsConstructor
 public class UserController {
-    private IUserService userService;
+    private final IUserService userService;
 
-    @GetMapping("/get")
+    @PostMapping("/login")
     public ResponseEntity<ApiResponse> getUser(@RequestBody UserRequest request){
         try {
-            UserDto userDto = userService.getUser(request.getUsername(), request.getPassword());
+            UserDto userDto = userService.authenticateUser(request.getUsername(), request.getPassword());
             return ResponseEntity.ok(new ApiResponse("Found", userDto));
         } catch (ResourceNotFoundException | IncorrectPasswordException e) {
             return ResponseEntity.status(BAD_REQUEST)
@@ -44,8 +43,11 @@ public class UserController {
         try {
             UserDto userDto = userService.saveUser(request.getUsername(), request.getEmail(), request.getPassword());
             return ResponseEntity.ok(new ApiResponse("Created", userDto));
-        } catch (AlreadyExistsException | ResourceNotFoundException e) {
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(BAD_REQUEST)
+                    .body(new ApiResponse(e.getMessage(), null));
+        } catch (AlreadyExistsException e){
+            return ResponseEntity.status(CONFLICT)
                     .body(new ApiResponse(e.getMessage(), null));
         } catch (Exception e){
             return ResponseEntity.status(INTERNAL_SERVER_ERROR)
